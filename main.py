@@ -1,6 +1,5 @@
 import pandas as pd
 import plotly.graph_objects as go
-import math
 
 
 def create_sankey(labels, source, target, values):
@@ -15,7 +14,10 @@ def create_sankey(labels, source, target, values):
             source=source,  # indices correspond to labels
             target=target,
             value=values
-        ))])
+        ),
+        arrangement="snap",
+        valuesuffix="€"
+    )])
 
     fig.update_layout(title_text="Sankey Diagram", font_size=10)
     return fig
@@ -141,14 +143,34 @@ def combine_sankey_data_by_node(labels_a: list, source_a: list, target_a: list, 
     # print(target_b_new)
     # print (".")
 
-    # print(".")
-    # print(labels)
-    # print(source)
-    # print(target)
-    # print(values)
-    # print(".")
+    print(".")
+    print(labels)
+    print(source)
+    print(target)
+    print(values)
+    print(".")
 
     return labels, source, target, values
+
+
+def extended_labels(labels: list[str], source: list[int], target: list[int], values: list[int]) -> list[str]:
+
+    labels_ex = []
+
+    for i, label in enumerate(labels):
+        # sum out
+        total_out = sum(values[idx]
+                        for idx, src in enumerate(source) if src == i)
+
+        # sum in
+        total_in = sum(values[idx]
+                       for idx, tgt in enumerate(target) if tgt == i)
+
+        total = max(total_out, total_in)
+
+        labels_ex.append(f"{label} \n{total}€")
+
+    return labels_ex
 
 
 def main():
@@ -172,6 +194,8 @@ def main():
 
     labels, source, target, values = combine_sankey_data_by_node(
         labels_income, source_income, target_income, values_income, 'Total', labels_expenses, source_expenses, target_expenses, values_expenses, 'Total')
+
+    labels = extended_labels(labels, source, target, values)
 
     # Create and display the Sankey diagram
     fig = create_sankey(labels, source, target, values)
