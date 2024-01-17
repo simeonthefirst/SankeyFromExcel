@@ -56,9 +56,7 @@ def prepare_sankey_data(df, month, categories, start_total=False, end_total=Fals
             if pd.isna(current_category_value):
                 continue
 
-            # Add the current month's value to 'values' and the category's index to 'source'
-            values.append(row[month])
-            source.append(label_to_index[current_category_value])
+         
 
             # Find the next category with a non-missing value
             next_valid_category = None
@@ -69,11 +67,19 @@ def prepare_sankey_data(df, month, categories, start_total=False, end_total=Fals
 
             # If a valid next category is found, add its index to 'target'
             if next_valid_category:
-                target.append(label_to_index[row[next_valid_category]])
-            else:
-                # If no valid next category is found, remove the last items from 'values' and 'source'
-                values.pop()
-                source.pop()
+                tar=(label_to_index[row[next_valid_category]])
+                
+                 # Add the current month's value to 'values' and the category's index to 'source'                
+                sou=(label_to_index[current_category_value])
+                
+                # avoid loops
+                if (sou != tar):
+                    target.append(tar)
+                    source.append(sou)
+                    values.append(row[month])
+                
+            
+
 
     return labels, source, target, values
 
@@ -175,22 +181,27 @@ def extended_labels(labels: list[str], source: list[int], target: list[int], val
 
 def main():
     # Read the Excel file
-    file_path = 'data.xlsx'  # Replace with your file path
-    month = 'Jan'
+    #file_path = r"C:\Users\smn\OneDrive\Haushaltsbuch 2024.xlsx"
+    file_path = r"Haushaltsbuch 2024.xlsx"
+    #file_path = 'data.xlsx'  # Replace with your file path
+    month = 'Januar'
 
     df_expenses = pd.read_excel(file_path, 'expenses')
+    df_expenses.replace('0', '')
 
     # Prepare the data for the Sankey diagram for 'Jan'
     labels_expenses, source_expenses, target_expenses, values_expenses = prepare_sankey_data(
-        df_expenses, month, ['Cat 1', 'cat 2', 'cat 3'], start_total=True)
+        df_expenses, month, ['Kategorie 1', 'Kategorie 2'], start_total=True)
 
     labels_expenses, source_expenses, target_expenses, values_expenses = summarize_sankey_data(
         labels_expenses, source_expenses, target_expenses, values_expenses)
 
     df_income = pd.read_excel(file_path, 'income')
+    df_income.replace('0', '')   
+    
 
     labels_income, source_income, target_income, values_income = prepare_sankey_data(
-        df_income, month, ['Cat 1', 'cat 2', 'cat 3'], end_total=True)
+        df_income, month, ['Kategorie 1'], end_total=True)
 
     labels, source, target, values = combine_sankey_data_by_node(
         labels_income, source_income, target_income, values_income, 'Total', labels_expenses, source_expenses, target_expenses, values_expenses, 'Total')
