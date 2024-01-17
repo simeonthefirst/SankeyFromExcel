@@ -1,5 +1,6 @@
 import pandas as pd
 import plotly.graph_objects as go
+import os
 
 
 def create_sankey(labels, source, target, values):
@@ -56,8 +57,6 @@ def prepare_sankey_data(df, month, categories, start_total=False, end_total=Fals
             if pd.isna(current_category_value):
                 continue
 
-         
-
             # Find the next category with a non-missing value
             next_valid_category = None
             for j in range(i + 1, len(categories)):
@@ -67,19 +66,16 @@ def prepare_sankey_data(df, month, categories, start_total=False, end_total=Fals
 
             # If a valid next category is found, add its index to 'target'
             if next_valid_category:
-                tar=(label_to_index[row[next_valid_category]])
-                
-                 # Add the current month's value to 'values' and the category's index to 'source'                
-                sou=(label_to_index[current_category_value])
-                
+                tar = (label_to_index[row[next_valid_category]])
+
+                # Add the current month's value to 'values' and the category's index to 'source'
+                sou = (label_to_index[current_category_value])
+
                 # avoid loops
                 if (sou != tar):
                     target.append(tar)
                     source.append(sou)
                     values.append(row[month])
-                
-            
-
 
     return labels, source, target, values
 
@@ -181,10 +177,15 @@ def extended_labels(labels: list[str], source: list[int], target: list[int], val
 
 def main():
     # Read the Excel file
-    #file_path = r"C:\Users\smn\OneDrive\Haushaltsbuch 2024.xlsx"
-    file_path = r"Haushaltsbuch 2024.xlsx"
-    #file_path = 'data.xlsx'  # Replace with your file path
-    month = 'Januar'
+    # file_path = r"C:\Users\smn\OneDrive\Haushaltsbuch 2024.xlsx"
+    # file_path = r"Haushaltsbuch 2024.xlsx"
+    # file_path = 'data.xlsx'  # Replace with your file path
+    file_path = ""
+    for file in os.listdir("."):
+        if file.endswith(".xlsx"):
+            file_path = file
+
+    month = 'Average'
 
     df_expenses = pd.read_excel(file_path, 'expenses')
     df_expenses.replace('0', '')
@@ -197,8 +198,7 @@ def main():
         labels_expenses, source_expenses, target_expenses, values_expenses)
 
     df_income = pd.read_excel(file_path, 'income')
-    df_income.replace('0', '')   
-    
+    df_income.replace('0', '')
 
     labels_income, source_income, target_income, values_income = prepare_sankey_data(
         df_income, month, ['Kategorie 1'], end_total=True)
