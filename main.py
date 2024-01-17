@@ -21,48 +21,57 @@ def create_sankey(labels, source, target, values):
     return fig
 
 
-def prepare_sankey_data(df, month, categories):
+def prepare_sankey_data(df, month, categories, start_total=False, end_total=False):
+
+    if start_total:
+        # labels.insert(0, 'Total')
+        df.insert(0, 'Total', 'Total')
+        categories.insert(0, 'Total')
+    elif end_total:
+        df = df.assign(Total='Total')
+        categories.append('Total')
+
+    print(df)
+
     labels = pd.unique(df[categories].values.ravel('K'))
     labels = labels.tolist()
-    labels.insert(0, 'Total')
+
     source = []
     target = []
     values = []
     label_to_index = {label: idx for idx, label in enumerate(labels)}
 
     for _, row in df.iterrows():
-        if not pd.isna(row[month]):
-            source.append(0)
+        # Skip processing this row if the 'month' column value is missing
+        if pd.isna(row[month]):
+            continue
 
-            if not pd.isna(row[categories[0]]):
-                target.append(label_to_index[row[categories[0]]])
-            elif not pd.isna(row[categories[1]]):
-                target.append(label_to_index[row[categories[1]]])
-            elif not pd.isna(row[categories[2]]):
-                target.append(label_to_index[row[categories[2]]])
+        for i in range(len(categories) - 1):
+            current_category = categories[i]
+            current_category_value = row[current_category]
+
+            # If the current category value is missing, stop processing this row
+            if pd.isna(current_category_value):
+                continue
+
+            # Add the current month's value to 'values' and the category's index to 'source'
             values.append(row[month])
+            source.append(label_to_index[current_category_value])
 
-            for i, _ in enumerate(categories[:-1]):
-
-                values.append(row[month])
-
-                if not pd.isna(row[categories[i]]):
-                    source.append(label_to_index[row[categories[i]]])
-                else:
-                    values.pop()
+            # Find the next category with a non-missing value
+            next_valid_category = None
+            for j in range(i + 1, len(categories)):
+                if not pd.isna(row[categories[j]]):
+                    next_valid_category = categories[j]
                     break
 
-                if pd.isna(row[categories[i+1]]) and not pd.isna(row[categories[i+2]]):
-                    target.append(label_to_index[row[categories[i+2]]])
-                elif pd.isna(row[categories[i+1]]) and pd.isna(row[categories[i+2]]) and not pd.isna(row[categories[i+3]]):
-                    target.append(label_to_index[row[categories[i+3]]])
-                elif not pd.isna(row[categories[i+1]]):
-
-                    target.append(label_to_index[row[categories[i+1]]])
-                else:
-                    values.pop()
-                    source.pop()
-                    break
+            # If a valid next category is found, add its index to 'target'
+            if next_valid_category:
+                target.append(label_to_index[row[next_valid_category]])
+            else:
+                # If no valid next category is found, remove the last items from 'values' and 'source'
+                values.pop()
+                source.pop()
 
     return labels, source, target, values
 
@@ -89,23 +98,86 @@ def summarize_sankey_data(labels, source, target, values):
     return labels, summarized_source, summarized_target, summarized_values
 
 
-# Read the Excel file
-file_path = 'data.xlsx'  # Replace with your file path
-df = pd.read_excel(file_path, 'expenses')
+def combine_sankey_data_by_node(labels_a: list, source_a: list, target_a: list, values_a: list, merge_node_a: str, labels_b: list, source_b: list, target_b: list, values_b: list, merge_node_b: str):
 
-# Prepare the data for the Sankey diagram for 'Jan'
-labels, source, target, values = prepare_sankey_data(
-    df, 'Jan', ['Cat 1', 'cat 2', 'cat 3'])
+    # get id of merge_node_b in list b
+    node_index_b = labels_b.index(merge_node_b)
+    labels_b.pop(node_index_b)
 
-labels, source, target, values = summarize_sankey_data(
-    labels, source, target, values)
+    # offset lists i by len(list a)
+    offset = len(labels_a)-1
+    source__b_off = [x + offset for x in source_b]
+    target_b_off = [x + offset for x in target_b]
+
+    # replace offsetted index of 'Total' in i with index of 'Total' of e
+    node_index_a = labels_a.index(merge_node_a)
+    node_index_b_off = node_index_b + offset
+
+    source_b_new = [node_index_a if x ==
+                    node_index_b_off else x for x in source__b_off]
+    target_b_new = [node_index_a if x ==
+                    node_index_b_off else x for x in target_b_off]
+
+    # concat lists
+    source = source_a + source_b_new
+    target = target_a + target_b_new
+    labels = labels_a + labels_b
+    values = values_a + values_b
+
+    # print(".")
+    # print(labels_a)
+    # print(source_a)
+    # print(target_a)
+    # print(values_a)
+    # print(".")
+
+    # print(".")
+    # print(labels_b)
+    # print(source_b)
+    # print(target_b)
+    # print(values_b)
+    # print(".")
+    # print(source_b_new)
+    # print(target_b_new)
+    # print (".")
+
+    # print(".")
+    # print(labels)
+    # print(source)
+    # print(target)
+    # print(values)
+    # print(".")
+
+    return labels, source, target, values
 
 
-print(labels)
-print(source)
-print(target)
-print(values)
+def main():
+    # Read the Excel file
+    file_path = 'data.xlsx'  # Replace with your file path
+    month = 'Jan'
 
-# Create and display the Sankey diagram
-fig = create_sankey(labels, source, target, values)
-fig.show()
+    df_expenses = pd.read_excel(file_path, 'expenses')
+
+    # Prepare the data for the Sankey diagram for 'Jan'
+    labels_expenses, source_expenses, target_expenses, values_expenses = prepare_sankey_data(
+        df_expenses, month, ['Cat 1', 'cat 2', 'cat 3'], start_total=True)
+
+    labels_expenses, source_expenses, target_expenses, values_expenses = summarize_sankey_data(
+        labels_expenses, source_expenses, target_expenses, values_expenses)
+
+    df_income = pd.read_excel(file_path, 'income')
+
+    labels_income, source_income, target_income, values_income = prepare_sankey_data(
+        df_income, month, ['Cat 1', 'cat 2', 'cat 3'], end_total=True)
+
+    labels, source, target, values = combine_sankey_data_by_node(
+        labels_income, source_income, target_income, values_income, 'Total', labels_expenses, source_expenses, target_expenses, values_expenses, 'Total')
+
+    # Create and display the Sankey diagram
+    fig = create_sankey(labels, source, target, values)
+
+    fig.show()
+
+
+if __name__ == "__main__":
+    main()
