@@ -1,5 +1,6 @@
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.offline as po
 import os
 
 
@@ -170,7 +171,7 @@ def extended_labels(labels: list[str], source: list[int], target: list[int], val
 
         total = max(total_out, total_in)
 
-        labels_ex.append(f"{label} \n{total}€")
+        labels_ex.append(f"{label} \n{total:.0f} €")
 
     return labels_ex
 
@@ -181,9 +182,10 @@ def main():
     # file_path = r"Haushaltsbuch 2024.xlsx"
     # file_path = 'data.xlsx'  # Replace with your file path
     file_path = ""
-    for file in os.listdir("."):
-        if file.endswith(".xlsx"):
-            file_path = file
+    data_file = ""
+    for data_file in os.listdir("."):
+        if data_file.endswith(".xlsx"):
+            file_path = data_file
 
     month = 'Average'
 
@@ -192,7 +194,7 @@ def main():
 
     # Prepare the data for the Sankey diagram for 'Jan'
     labels_expenses, source_expenses, target_expenses, values_expenses = prepare_sankey_data(
-        df_expenses, month, ['Kategorie 1', 'Kategorie 2'], start_total=True)
+        df_expenses, month, ['Kategorie 1', 'Kategorie 2', 'Kategorie 3'], start_total=True)
 
     labels_expenses, source_expenses, target_expenses, values_expenses = summarize_sankey_data(
         labels_expenses, source_expenses, target_expenses, values_expenses)
@@ -211,7 +213,9 @@ def main():
     # Create and display the Sankey diagram
     fig = create_sankey(labels, source, target, values)
 
-    fig.show()
+    po.plot(fig, filename=f"{data_file.split('.')[0]}_sankey.html")
+
+    # fig.show()
 
 
 if __name__ == "__main__":

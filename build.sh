@@ -1,1 +1,1 @@
-pyinstaller --onefile main.py
+pyinstaller --onefile main.py --hidden-import openpyxl.cell._writer -n gen_sankey
