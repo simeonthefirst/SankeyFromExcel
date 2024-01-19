@@ -176,46 +176,44 @@ def extended_labels(labels: list[str], source: list[int], target: list[int], val
     return labels_ex
 
 
+def get_user_categories(prompt, default_categories):
+    user_input = input(prompt).strip()
+    return [category.strip() for category in user_input.split(',')] if user_input else default_categories
+
+
+def find_excel_file():
+    for file in os.listdir("."):
+        if file.endswith(".xlsx"):
+            return file
+    return ""
+
+
 def main():
-    # Read the Excel file
-    # file_path = r"C:\Users\smn\OneDrive\Haushaltsbuch 2024.xlsx"
-    # file_path = r"Haushaltsbuch 2024.xlsx"
-    # file_path = 'data.xlsx'  # Replace with your file path
-    file_path = ""
-    data_file = ""
-    for data_file in os.listdir("."):
-        if data_file.endswith(".xlsx"):
-            file_path = data_file
-    
-    month = input('Enter the column name (default: Average): ').strip() or 'Average'
+    file_path = find_excel_file()
+    month = input(
+        'Enter the column name (default: Average): ').strip() or 'Average'
 
-    df_expenses = pd.read_excel(file_path, 'expenses')
-    df_expenses.replace('0', '')
+    income_prompt = "Enter category column names for income, or press Enter to use default (Kategorie 1): "
+    expenses_prompt = "Enter category column names for expenses, or press Enter to use default (Kategorie 1, Kategorie 2, Kategorie 3): "
+    income_categories = get_user_categories(income_prompt, ['Kategorie 1'])
+    expenses_categories = get_user_categories(
+        expenses_prompt, ['Kategorie 1', 'Kategorie 2', 'Kategorie 3'])
 
-    # Prepare the data for the Sankey diagram for 'Jan'
+    df_expenses = pd.read_excel(file_path, 'expenses').replace('0', '')
     labels_expenses, source_expenses, target_expenses, values_expenses = prepare_sankey_data(
-        df_expenses, month, ['Kategorie 1', 'Kategorie 2', 'Kategorie 3'], start_total=True)
-
+        df_expenses, month, expenses_categories, start_total=True)
     labels_expenses, source_expenses, target_expenses, values_expenses = summarize_sankey_data(
         labels_expenses, source_expenses, target_expenses, values_expenses)
 
-    df_income = pd.read_excel(file_path, 'income')
-    df_income.replace('0', '')
-
+    df_income = pd.read_excel(file_path, 'income').replace('0', '')
     labels_income, source_income, target_income, values_income = prepare_sankey_data(
-        df_income, month, ['Kategorie 1'], end_total=True)
-
+        df_income, month, income_categories, end_total=True)
     labels, source, target, values = combine_sankey_data_by_node(
         labels_income, source_income, target_income, values_income, 'Total', labels_expenses, source_expenses, target_expenses, values_expenses, 'Total')
 
     labels = extended_labels(labels, source, target, values)
-
-    # Create and display the Sankey diagram
     fig = create_sankey(labels, source, target, values)
-
-    po.plot(fig, filename=f"{data_file.split('.')[0]}_sankey.html")
-
-    # fig.show()
+    po.plot(fig, filename=f"{file_path.split('.')[0]}_sankey.html")
 
 
 if __name__ == "__main__":
