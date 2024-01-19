@@ -186,8 +186,8 @@ def main():
     for data_file in os.listdir("."):
         if data_file.endswith(".xlsx"):
             file_path = data_file
-
-    month = 'Average'
+    
+    month = input('Enter the column name (default: Average): ').strip() or 'Average'
 
     df_expenses = pd.read_excel(file_path, 'expenses')
     df_expenses.replace('0', '')
